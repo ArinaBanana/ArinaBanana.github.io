@@ -130,8 +130,9 @@ class Thing
     updateSelf()
     {
         changeClass(this.cell.getContainer(),POSSIBLE_THINGS,this.type);
-        if(!!this.dir)
-            changeClass(this.cell.getContainer(),POSSIBLE_DIRS,this.dir);
+        if(!!this.dir) {
+            this.cell.getContainer().setAttribute(`style`, `transform: rotate(${this.rotation}deg)`);
+        }
         if(!!this.state)
             changeClass(this.cell.getContainer(),POSSIBLE_STATES,this.state);
         if(!!this.label)
@@ -243,71 +244,89 @@ logs.add = line => logs.unshift(`(ход: ${boy.age}) `+ line);
 
 const nothing = new Thing(cells[0][0],{description: "Ничего."});
 
-const boy = new Thing(cells[51][51],{
-    type: "boy",
-    dir: "S",
-    state: "walking",
-    name: "Я",
-    necrolog: "Я умер.",
-    body: "deadBoy",
-    hp: 30,
-    xp:0,
-    age: 0,
-    xpPrice: 0});
+class Boy extends Thing {
+    get dir() {
+        return getDir(this.rotation);
+    }
 
-boy.move = dir =>
-{
-    if (boy.state==="recovering") return boy.set("state","walking");
-    switch (boy.dir+"->"+dir)
-    {
-        case "S->E": case "E->N": case "N->W": case "W->S": boy.turn("left"); break;
-        case "E->S": case "N->E": case "W->N": case "S->W": boy.turn("right"); break;
-        case "N->N": case "S->S": case "E->E": case "W->W": boy.hit(boy.cell.getNext()); break;
-        case "N->S": case "S->N": case "E->W": case "W->E": boy.wait(); break;
+    move(dir) {
+
+        if (boy.state==="recovering") return boy.set("state","walking");
+        switch (boy.dir+"->"+dir)
+        {
+            case "S->E":
+            case "E->N":
+            case "N->W":
+            case "W->S":
+                boy.turn("left"); break;
+            case "E->S":
+            case "N->E":
+            case "W->N":
+            case "S->W":
+                boy.turn("right"); break;
+            case "N->N":
+            case "S->S":
+            case "E->E":
+            case "W->W":
+                boy.hit(boy.cell.getNext()); break;
+            case "N->S":
+            case "S->N":
+            case "E->W":
+            case "W->E":
+                boy.wait(); break;
+        }
+    }
+
+    stepForward() {
+        boy.set("state","walking");
+        boy.cell=boy.cell.getNext().getNext();
+    }
+
+    turn(side) {
+        boy.set("state","walking");
+
+        const result = side === "left" ? boy.rotation - 90 : boy.rotation + 90;
+
+        boy.set("rotation", result);
+    }
+
+    wait() {
+        boy.set("state","waiting");
+    }
+
+    hit(cell) {
+        if(cell.isWall)
+            if(cell.checkPassable()) boy.hit(cell.getNext());
+            else return;
+        else  if (cell.checkPassable()) boy.stepForward();
+        else
+        {
+            boy.set("state","hitting");
+            cell.getThing().getHit();
+        }
+    }
+
+    getXp(xp) {
+        boy.xp+=xp;
+        logs.add(`Я получил ${xp} опыта.`);
     }
 }
 
-boy.stepForward = () =>
-{
-    boy.set("state","walking");
-    boy.cell=boy.cell.getNext().getNext();
-}
-
-boy.turn = side =>
-{
-    boy.set("state","walking");
-    switch (boy.dir+"->"+side)
+const boy = new Boy(
+    cells[51][51],
     {
-        case "N->right": case "S->left": boy.set("dir","E"); break;
-        case "S->right": case "N->left": boy.set("dir","W"); break;
-        case "W->right": case "E->left": boy.set("dir","N"); break;
-        case "E->right": case "W->left": boy.set("dir","S"); break;
+        type: "boy",
+        rotation: 0,
+        state: "walking",
+        name: "Я",
+        necrolog: "Я умер.",
+        body: "deadBoy",
+        hp: 30,
+        xp:0,
+        age: 0,
+        xpPrice: 0
     }
-}
-
-boy.wait = () =>
-{
-    boy.set("state","waiting");
-}
-
-boy.hit = cell =>
-{
-    if(cell.isWall)
-        if(cell.checkPassable()) boy.hit(cell.getNext());
-        else return;
-    else  if (cell.checkPassable()) boy.stepForward();
-    else
-    {
-        boy.set("state","hitting");
-        cell.getThing().getHit();
-    }
-}
-
-boy.getXp = xp =>
-{
-    boy.xp+=xp;
-    logs.add(`Я получил ${xp} опыта.`);
-}
+);
 
 const initWorld = (option) =>
 {

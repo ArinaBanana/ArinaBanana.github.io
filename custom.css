@@ -99,18 +99,7 @@ input:invalid {border-color: red;}
 .boy {
   transition: .2s;
 }
-.boy.N {
-  transform: rotate(180deg);
-}
-.boy.S {
-  transform: rotate(0deg);
-}
-.boy.E {
-  transform: rotate(-90deg);
-}
-.boy.W {
-  transform: rotate(90deg);
-}
+
 .boy.walking {
   background-image: url(media/boy-walking.png);
 }
